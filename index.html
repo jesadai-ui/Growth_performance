@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรแกรมประเมินสมรรถนะการเลี้ยงปลานิลแดงและวิเคราะห์คุณภาพน้ำ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body { 
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); 
+            min-height: 100vh; 
+            padding: 30px 15px; 
+            font-family: 'Tahoma', sans-serif; 
+        }
+        .container-main { max-width: 1750px; margin: 0 auto; }
+        
+        .header-title { 
+            color: #1b5e20; font-size: 2.6rem; font-weight: 900; 
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.8); margin-bottom: 5px; line-height: 1.3;
+            text-align: center;
+        }
+        .header-author { color: #d84315; font-size: 1.4rem; font-weight: bold; margin-bottom: 25px; text-align: center; }
+
+        .counter-badge {
+            background-color: #ffca28; color: #3e2723; font-size: 1.3rem; font-weight: bold;
+            padding: 10px 30px; border-radius: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            display: inline-block; margin-bottom: 30px;
+        }
+
+        .card { 
+            border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); 
+            border: none; margin-bottom: 25px; background-color: #ffffff;
+        }
+        .card-header { 
+            background: #2e7d32; color: #ffffff; font-weight: bold; 
+            font-size: 1.2rem; padding: 12px 20px; border-radius: 12px 12px 0 0 !important;
+            white-space: nowrap; text-align: left;
+        }
+
+        /* บังคับตัวอักษรไม่ให้ตกแถว และจัดกลาง */
+        label, th, td { white-space: nowrap !important; text-align: center !important; vertical-align: middle !important; }
+        label { font-weight: bold; color: #37474f; font-size: 1.05rem; margin-bottom: 8px; }
+        
+        .form-control { 
+            background-color: #fdf8e4 !important; border: 2px solid #81c784; 
+            border-radius: 8px; padding: 6px; font-size: 1.1rem; 
+            font-weight: bold; color: #212121; text-align: center !important;
+        }
+        .form-control:focus { border-color: #388e3c; box-shadow: 0 0 0 0.25rem rgba(56, 142, 60, 0.25); }
+
+        .input-sm { width: 75px; display: inline-block; }
+        .input-md { width: 95px; display: inline-block; }
+
+        .table-custom th { background-color: #004d40; color: white; font-size: 0.95rem; }
+        .table-custom td { padding: 4px; transition: all 0.2s; }
+        
+        .btn-calc { 
+            background: #ef6c00; color: white; font-weight: 900; font-size: 1.4rem; 
+            padding: 15px; border-radius: 10px; width: 100%; transition: 0.3s;
+            box-shadow: 0 4px 10px rgba(239, 108, 0, 0.3);
+        }
+        .btn-calc:hover { background: #e65100; transform: translateY(-2px); color: white;}
+        
+        .result-wrapper { display: none; margin-top: 30px; }
+        .table-result th { background-color: #1565c0; color: white; font-size: 0.95rem; }
+        .table-result td { font-weight: bold; font-size: 1rem; }
+        
+        .summary-box {
+            background-color: #f3e5f5; border-left: 6px solid #8e24aa; 
+            padding: 15px; border-radius: 8px; margin-bottom: 15px; height: 100%; text-align: left !important;
+        }
+        .summary-box span, .summary-box div { white-space: nowrap !important; text-align: left !important; }
+        
+        .advice-box {
+            padding: 20px; border-radius: 10px; margin-bottom: 20px; 
+            font-size: 1.1rem; line-height: 1.6; text-align: left !important; white-space: normal !important;
+        }
+
+        .toggle-btn-group {
+            background-color: #f1f8e9; padding: 15px; border-radius: 8px; 
+            border: 1px dashed #81c784; margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-main">
+    <div class="text-center mb-4">
+        <h1 class="header-title">โปรแกรมประเมินสมรรถนะการเลี้ยงปลานิลแดง<br>และวิเคราะห์ความสัมพันธ์คุณภาพน้ำ</h1>
+        <p class="header-author">ออกแบบและพัฒนาโปรแกรมโดย รศ.ดร.เจษฎา อิสเหาะ<br>มหาวิทยาลัยเทคโนโลยีราชมงคลสุวรรณภูมิ</p>
+        
+        <!-- ส่วนแสดงจำนวนผู้ใช้งาน (Global Counter) -->
+        <div class="counter-badge">
+            📊 จำนวนการเปิดใช้งาน: <span id="visitCounter" class="text-danger fs-3">...</span> ครั้ง
+        </div>
+    </div>
+
+    <!-- ส่วนที่ 1: ข้อมูลตั้งต้น -->
+    <div class="card">
+        <div class="card-header"><i class="bi bi-info-circle"></i> 1. ข้อมูลการเลี้ยงเริ่มต้น (Initial Data)</div>
+        <div class="card-body p-4">
+            <div class="row g-4 text-center">
+                <div class="col-md-3">
+                    <label>น้ำหนักเฉลี่ยเริ่มต้น (กรัม)</label>
+                    <input type="number" id="start_w" class="form-control" value="55" min="0" step="0.1">
+                </div>
+                <div class="col-md-3">
+                    <label>จำนวนสัตว์น้ำที่ปล่อย (ตัว)</label>
+                    <input type="number" id="start_n" class="form-control" value="1500" min="0">
+                </div>
+                <div class="col-md-3">
+                    <label>ระดับโปรตีนในอาหาร (%)</label>
+                    <input type="number" id="feed_protein" class="form-control" value="32" min="0" step="0.1">
+                </div>
+                <div class="col-md-3">
+                    <label class="text-danger">ราคาอาหาร (บาท/กก.)</label>
+                    <input type="number" id="feed_price" class="form-control" value="35" min="0" step="0.5">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ส่วนที่ 2: ตารางบันทึกการชั่งวัดและคุณภาพน้ำ -->
+    <div class="card">
+        <div class="card-header"><i class="bi bi-droplet-half"></i> 2. ข้อมูลการชั่งวัดและคุณภาพน้ำ (Sampling & Water Quality Data)</div>
+        <div class="card-body p-4">
+            
+            <!-- ระบบเพิ่ม/ลด คอลัมน์คุณภาพน้ำแบบไดนามิก -->
+            <div class="toggle-btn-group">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="fw-bold text-success" style="font-size: 1.1rem;"><i class="bi bi-sliders"></i> เครื่องมือจัดการคอลัมน์คุณภาพน้ำ (เปิด/ซ่อน):</span>
+                    <button class="btn btn-primary fw-bold" onclick="addCustomColumn()"><i class="bi bi-plus-lg"></i> เพิ่มพารามิเตอร์ใหม่ (สำหรับงานวิจัย)</button>
+                </div>
+                <div id="columnToggles" class="d-flex flex-wrap gap-2">
+                    <!-- ปุ่มจะถูกโหลดผ่าน JavaScript -->
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-custom mb-0" id="samplingTable">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">ครั้งที่</th>
+                            <th colspan="4" class="bg-success text-white">ข้อมูลสัตว์น้ำและการให้อาหาร</th>
+                            <th colspan="7" class="bg-primary text-white" id="wq_header_group">พารามิเตอร์คุณภาพน้ำ (ก่อนชั่งวัด 1 วัน)</th>
+                            <th rowspan="2">จัดการ</th>
+                        </tr>
+                        <tr id="wq_headers_row">
+                            <th>น้ำหนักเฉลี่ย<br>(กรัม)</th>
+                            <th>อาหารรวมช่วงนี้<br>(กก.)</th>
+                            <th>ระยะห่าง<br>(วัน)</th>
+                            <th class="text-warning">ปลาตายช่วงนี้<br>(ตัว)</th>
+                            <!-- Header พื้นฐาน -->
+                            <th class="col-do">DO<br>(mg/L)</th>
+                            <th class="col-temp">Temp<br>(°C)</th>
+                            <th class="col-ph">pH</th>
+                            <th class="col-tan">TAN<br>(mg/L)</th>
+                            <th class="col-no2">Nitrite<br>(mg/L)</th>
+                            <th class="col-no3">Nitrate<br>(mg/L)</th>
+                            <th class="col-alk">Alkalinity<br>(mg/L)</th>
+                            <!-- Header ใหม่จะถูกแทรกที่นี่ -->
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- แถวจะถูกสร้างและโหลดด้วย JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-3 bg-light d-flex justify-content-between mt-2 border rounded">
+                <button class="btn btn-danger fw-bold" onclick="clearData()"><i class="bi bi-trash"></i> ล้างข้อมูลใหม่ทั้งหมด</button>
+                <button class="btn btn-success fw-bold" onclick="addRow()"><i class="bi bi-plus-circle"></i> เพิ่มแถวการชั่งวัด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ปุ่มประมวลผล -->
+    <button class="btn btn-calc mb-4" onclick="calculateAndSave()"><i class="bi bi-cpu-fill"></i> ประมวลผลและวิเคราะห์ข้อมูล</button>
+
+    <!-- ส่วนที่ 3: ผลลัพธ์ -->
+    <div class="result-wrapper" id="resultSection">
+        
+        <!-- กล่องข้อเสนอแนะอัจฉริยะ -->
+        <div id="adviceBox" class="advice-box"></div>
+
+        <div class="card" style="border: 4px solid #1565c0;">
+            <div class="card-header" style="background: #1565c0;"><i class="bi bi-bar-chart-fill"></i> 3. ผลการวิเคราะห์สมรรถนะและต้นทุน (Performance & Cost Results)</div>
+            <div class="card-body p-4">
+                
+                <!-- สรุปภาพรวมสะสม 4 คอลัมน์ -->
+                <div class="row g-3 mb-4">
+                    <div class="col-lg-3 col-md-6">
+                        <div class="summary-box" style="background-color: #e3f2fd; border-left-color: #1565c0;">
+                            <h6 class="fw-bold text-primary text-start">📈 สมรรถนะการเติบโตสะสม</h6>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between"><span>Wg สะสม:</span> <span id="sum_wg" class="fw-bold text-dark">0.00</span></div>
+                            <div class="d-flex justify-content-between"><span>ADG สะสม:</span> <span id="sum_adg" class="fw-bold text-dark">0.00</span></div>
+                            <div class="d-flex justify-content-between"><span>SGR สะสม:</span> <span id="sum_sgr" class="fw-bold text-dark">0.00</span></div>
+                            <div class="d-flex justify-content-between text-success fw-bold mt-2 border-top pt-1"><span>ผลผลิตรวม (กก.):</span> <span id="sum_yield">0.00</span></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="summary-box" style="background-color: #fff3e0; border-left-color: #ef6c00;">
+                            <h6 class="fw-bold text-warning text-start" style="color: #e65100 !important;">🥩 ประสิทธิภาพอาหารสะสม</h6>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between"><span>FCR สะสม:</span> <span id="sum_fcr" class="fw-bold text-danger">0.00</span></div>
+                            <div class="d-flex justify-content-between"><span>FE สะสม:</span> <span id="sum_fe" class="fw-bold text-dark">0.00</span></div>
+                            <div class="d-flex justify-content-between"><span>PER สะสม:</span> <span id="sum_per" class="fw-bold text-dark">0.00</span></div>
+                            <div class="d-flex justify-content-between fw-bold mt-2 border-top pt-1 text-primary"><span>อาหารสะสม (กก.):</span> <span id="sum_feed">0.00</span></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="summary-box" style="background-color: #e8f5e9; border-left-color: #2e7d32;">
+                            <h6 class="fw-bold text-success text-start">💰 ต้นทุนค่าอาหารสะสม</h6>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between"><span>ต้นทุนรวม (บาท):</span> <span id="total_cost" class="fw-bold text-dark">0.00</span></div>
+                            <div class="d-flex justify-content-between text-danger fw-bold mt-2"><span>ต่อผลผลิต 1 กก.:</span> <span id="cost_per_kg">0.00</span></div>
+                            <div class="d-flex justify-content-between text-danger fw-bold mt-1"><span>ต่อปลา 1 ตัว:</span> <span id="cost_per_fish">0.00</span></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="summary-box" style="background-color: #ffebee; border-left-color: #c62828;">
+                            <h6 class="fw-bold text-danger text-start">🐟 ข้อมูลการรอดตาย ณ ปัจจุบัน</h6>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between"><span>อัตรารอดตาย (%):</span> <span id="sum_survival" class="fw-bold text-dark">0.00</span></div>
+                            <div class="d-flex justify-content-between text-danger fw-bold mt-2"><span>ปลาที่เหลือรอด (ตัว):</span> <span id="sum_alive">0</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ตารางผลลัพธ์รายช่วง -->
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover table-result">
+                        <thead>
+                            <tr>
+                                <th>ช่วงเวลา</th>
+                                <th>ห่าง<br>(วัน)</th>
+                                <th>น้ำหนัก<br>(g)</th>
+                                <!-- ปรับสีตัวอักษรส่วนหัวให้อ่านง่ายและตัดกับพื้นหลัง -->
+                                <th style="color: #81d4fa;">Wg เฉลี่ย<br>(กรัม)</th>
+                                <th>ADG<br>(g/d)</th>
+                                <th>SGR<br>(%/d)</th>
+                                <th>อาหารรวมสะสม<br>(กก.)</th>
+                                <th style="color: #81d4fa;">FI เฉลี่ย<br>(กก./วัน)</th>
+                                <th style="color: #81d4fa;">FI เฉลี่ย<br>(%BW/วัน)</th>
+                                <th>FCR</th>
+                                <th>FE</th>
+                                <th>PER</th>
+                                <th>รอดตาย<br>(%)</th>
+                                <th>เหลือรอด<br>(ตัว)</th>
+                                <th>ผลผลิต<br>(กก.)</th>
+                                <th class="text-warning">แนะนำให้อาหาร<br>(กก./วัน)</th>
+                                <th class="text-warning">คาดการณ์น้ำหนัก<br>งวดหน้า (g)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultTableBody">
+                            <!-- ผลลัพธ์รายงวด -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let rowCount = 0;
+
+    // สถานะคอลัมน์คุณภาพน้ำ
+    let activeCols = {
+        'do': true, 'temp': true, 'ph': true, 'tan': true, 'no2': true, 'no3': true, 'alk': true
+    };
+    let colNames = {
+        'do': 'DO', 'temp': 'Temp', 'ph': 'pH', 'tan': 'TAN', 
+        'no2': 'Nitrite', 'no3': 'Nitrate', 'alk': 'Alkalinity'
+    };
+    
+    let customCols = [];
+
+    // --- ระบบ Local Storage และเริ่มโปรแกรม ---
+    window.onload = function() {
+        const baseCount = 160; 
+        fetch('https://api.counterapi.dev/v1/rmutsb_aqua_jessada/aqua_perf_tilapia_v11/up')
+            .then(response => response.json())
+            .then(data => {
+                let counterEl = document.getElementById('visitCounter');
+                if(counterEl) counterEl.innerText = baseCount + data.count;
+            })
+            .catch(error => {
+                let fallbackCount = localStorage.getItem('fb_aqua_perf_tilapia') || baseCount;
+                fallbackCount = parseInt(fallbackCount) + 1;
+                localStorage.setItem('fb_aqua_perf_tilapia', fallbackCount);
+                let counterEl = document.getElementById('visitCounter');
+                if(counterEl) counterEl.innerText = fallbackCount;
+            });
+
+        let savedData = localStorage.getItem('aqua_perf_tilapia_data_v11');
+        if (savedData) {
+            let data = JSON.parse(savedData);
+            document.getElementById('start_w').value = data.start_w;
+            document.getElementById('start_n').value = data.start_n;
+            document.getElementById('feed_protein').value = data.feed_protein;
+            document.getElementById('feed_price').value = data.feed_price;
+            
+            if (data.activeCols) activeCols = data.activeCols;
+            if (data.colNames) colNames = data.colNames;
+            
+            if (data.customCols) {
+                customCols = data.customCols;
+                customCols.forEach(c => {
+                    let th = document.createElement('th');
+                    th.className = `col-${c.id}`;
+                    th.innerHTML = c.name.replace(/\n/g, '<br>');
+                    document.getElementById('wq_headers_row').appendChild(th);
+                });
+            }
+
+            renderToggleButtons();
+            updateColumnVisibility();
+
+            data.rows.forEach(r => addRowWithValue(r.w, r.f, r.d, r.dead, r.do_val, r.temp, r.ph, r.tan, r.no2, r.no3, r.alk, r.customData));
+            calculatePerformance(); 
+        } else {
+            renderToggleButtons();
+            updateColumnVisibility();
+            for(let i=0; i<3; i++) addRow();
+        }
+    };
+
+    function addCustomColumn() {
+        let name = prompt("ระบุชื่อพารามิเตอร์ใหม่ (เช่น ความเค็ม (ppt) หรือ แบคทีเรียรวม):");
+        if (!name || name.trim() === '') return;
+
+        let colId = 'cst_' + Date.now();
+        customCols.push({ id: colId, name: name });
+        activeCols[colId] = true;
+        colNames[colId] = name;
+
+        let th = document.createElement('th');
+        th.className = `col-${colId}`;
+        th.innerHTML = name.replace(/\n/g, '<br>');
+        document.getElementById('wq_headers_row').appendChild(th);
+
+        let rows = document.querySelectorAll('#tableBody tr');
+        rows.forEach(tr => {
+            let td = document.createElement('td');
+            td.className = `col-${colId}`;
+            td.innerHTML = `<input type="number" class="form-control input-sm cst_input" data-colid="${colId}" step="any" value="">`;
+            tr.insertBefore(td, tr.lastElementChild);
+        });
+
+        renderToggleButtons();
+        updateColumnVisibility();
+        calculateAndSave();
+    }
+
+    function renderToggleButtons() {
+        let container = document.getElementById('columnToggles');
+        let html = '';
+        for(let key in activeCols) {
+            let cleanName = colNames[key].replace(/<br>/g, ' ');
+            if(activeCols[key]) {
+                html += `<button class="btn btn-sm btn-success fw-bold" onclick="toggleColumn('${key}')"><i class="bi bi-eye"></i> ${cleanName}</button>`;
+            } else {
+                html += `<button class="btn btn-sm btn-outline-secondary fw-bold" onclick="toggleColumn('${key}')"><i class="bi bi-eye-slash"></i> ${cleanName}</button>`;
+            }
+        }
+        container.innerHTML = html;
+    }
+
+    function toggleColumn(key) {
+        activeCols[key] = !activeCols[key];
+        renderToggleButtons();
+        updateColumnVisibility();
+        calculateAndSave(); 
+    }
+
+    function updateColumnVisibility() {
+        let activeWqCount = 0;
+        for(let key in activeCols) {
+            let elements = document.querySelectorAll(`.col-${key}`);
+            if(activeCols[key]) {
+                elements.forEach(el => el.style.display = '');
+                activeWqCount++;
+            } else {
+                elements.forEach(el => el.style.display = 'none');
+            }
+        }
+        let headerGroup = document.getElementById('wq_header_group');
+        if(activeWqCount === 0) {
+            headerGroup.style.display = 'none';
+        } else {
+            headerGroup.style.display = '';
+            headerGroup.colSpan = activeWqCount;
+        }
+    }
+
+    function addRowWithValue(w='', f='', d='', dead='0', do_val='', temp='', ph='', tan='', no2='', no3='', alk='', customData={}) {
+        rowCount++;
+        const tbody = document.getElementById('tableBody');
+        const tr = document.createElement('tr');
+        tr.id = `row_${rowCount}`;
+        
+        let customTds = '';
+        customCols.forEach(c => {
+            let val = customData[c.id] !== undefined ? customData[c.id] : '';
+            customTds += `<td class="col-${c.id}"><input type="number" class="form-control input-sm cst_input" data-colid="${c.id}" step="any" value="${val}"></td>`;
+        });
+
+        tr.innerHTML = `
+            <td class="fw-bold bg-light">ครั้งที่ <span class="row-number">${rowCount}</span></td>
+            <td><input type="number" class="form-control input-md w_input" min="0" step="0.1" value="${w}"></td>
+            <td><input type="number" class="form-control input-md f_input" min="0" step="0.1" value="${f}"></td>
+            <td><input type="number" class="form-control input-sm d_input" min="1" value="${d}"></td>
+            <td><input type="number" class="form-control input-sm dead_input text-danger" min="0" step="1" value="${dead}"></td>
+            
+            <td class="col-do"><input type="number" class="form-control input-sm do_input" step="0.1" value="${do_val}"></td>
+            <td class="col-temp"><input type="number" class="form-control input-sm temp_input" step="0.1" value="${temp}"></td>
+            <td class="col-ph"><input type="number" class="form-control input-sm ph_input" step="0.1" value="${ph}"></td>
+            <td class="col-tan"><input type="number" class="form-control input-sm tan_input" step="0.1" value="${tan}"></td>
+            <td class="col-no2"><input type="number" class="form-control input-sm no2_input" step="0.01" value="${no2}"></td>
+            <td class="col-no3"><input type="number" class="form-control input-sm no3_input" step="0.1" value="${no3}"></td>
+            <td class="col-alk"><input type="number" class="form-control input-sm alk_input" step="1" value="${alk}"></td>
+            
+            ${customTds}
+            
+            <td>
+                <button class="btn btn-danger btn-sm fw-bold" onclick="removeRow('${tr.id}')"><i class="bi bi-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        updateColumnVisibility(); 
+        updateRowNumbers();
+    }
+
+    function addRow() { addRowWithValue('', '', '', '0'); }
+
+    function removeRow(rowId) {
+        const tbody = document.getElementById('tableBody');
+        if(tbody.children.length <= 1) { alert('ต้องมีข้อมูลอย่างน้อย 1 แถวครับ'); return; }
+        document.getElementById(rowId).remove();
+        updateRowNumbers();
+    }
+
+    function updateRowNumbers() {
+        const rows = document.querySelectorAll('#tableBody tr');
+        rows.forEach((row, index) => { row.querySelector('.row-number').innerText = index + 1; });
+    }
+
+    function clearData() {
+        if(confirm("ยืนยันการล้างข้อมูลทั้งหมด? ข้อมูลคอลัมน์พารามิเตอร์ที่สร้างใหม่จะถูกลบด้วย")) {
+            localStorage.removeItem('aqua_perf_tilapia_data_v11');
+            location.reload();
+        }
+    }
+
+    function calculateAndSave() {
+        let data = {
+            start_w: document.getElementById('start_w').value,
+            start_n: document.getElementById('start_n').value,
+            feed_protein: document.getElementById('feed_protein').value,
+            feed_price: document.getElementById('feed_price').value,
+            activeCols: activeCols,
+            colNames: colNames,
+            customCols: customCols,
+            rows: []
+        };
+        
+        document.querySelectorAll('#tableBody tr').forEach(row => {
+            let rowData = {
+                w: row.querySelector('.w_input').value,
+                f: row.querySelector('.f_input').value,
+                d: row.querySelector('.d_input').value,
+                dead: row.querySelector('.dead_input').value,
+                do_val: row.querySelector('.do_input').value,
+                temp: row.querySelector('.temp_input').value,
+                ph: row.querySelector('.ph_input').value,
+                tan: row.querySelector('.tan_input').value,
+                no2: row.querySelector('.no2_input').value,
+                no3: row.querySelector('.no3_input').value,
+                alk: row.querySelector('.alk_input').value,
+                customData: {}
+            };
+            
+            customCols.forEach(c => {
+                let input = row.querySelector(`.cst_input[data-colid="${c.id}"]`);
+                if(input) rowData.customData[c.id] = input.value;
+            });
+            
+            data.rows.push(rowData);
+        });
+        
+        localStorage.setItem('aqua_perf_tilapia_data_v11', JSON.stringify(data));
+        calculatePerformance();
+    }
+
+    function calculatePerformance() {
+        let N0 = parseFloat(document.getElementById('start_n').value) || 0;
+        let W0 = parseFloat(document.getElementById('start_w').value) || 0;
+        let ProteinPct = parseFloat(document.getElementById('feed_protein').value) || 0;
+        let feedPrice = parseFloat(document.getElementById('feed_price').value) || 0;
+
+        if (N0 === 0 || W0 === 0) { alert("กรุณาระบุน้ำหนักและจำนวนปลาเริ่มต้นให้ถูกต้อง"); return; }
+
+        const rows = document.querySelectorAll('#tableBody tr');
+        
+        let prev_W = W0;
+        let prev_Biomass = (N0 * W0) / 1000;
+        let current_N = N0; 
+        
+        let cum_Feed = 0, cum_Days = 0;
+        let htmlResult = '';
+        let final_Biomass = 0, final_N = N0, final_W = W0, final_Surv = 100, final_FCR = 0;
+        let hasData = false;
+        
+        let sum_do = 0, count_do = 0;
+        let sum_tan = 0, count_tan = 0;
+        let sum_no2 = 0, count_no2 = 0;
+
+        rows.forEach((row, index) => {
+            let w_val = parseFloat(row.querySelector('.w_input').value);
+            let period_feed = parseFloat(row.querySelector('.f_input').value); 
+            let d_val = parseFloat(row.querySelector('.d_input').value);
+            let dead_val = parseFloat(row.querySelector('.dead_input').value) || 0; 
+            
+            let do_val = parseFloat(row.querySelector('.do_input').value);
+            let tan = parseFloat(row.querySelector('.tan_input').value);
+            let no2 = parseFloat(row.querySelector('.no2_input').value);
+
+            if (!isNaN(w_val) && !isNaN(period_feed) && !isNaN(d_val)) {
+                hasData = true;
+                
+                if (activeCols['do'] && !isNaN(do_val)) { sum_do += do_val; count_do++; }
+                if (activeCols['tan'] && !isNaN(tan)) { sum_tan += tan; count_tan++; }
+                if (activeCols['no2'] && !isNaN(no2)) { sum_no2 += no2; count_no2++; }
+
+                current_N -= dead_val;
+                if(current_N < 0) current_N = 0;
+                let N_i = current_N;
+                let survival_rate = (N0 > 0) ? (N_i / N0) * 100 : 0;
+                let current_Biomass = (N_i * w_val) / 1000;
+
+                let Wg = w_val - prev_W;
+                let ADG = Wg / d_val;
+                let SGR = ((Math.log(w_val) - Math.log(prev_W)) / d_val) * 100;
+
+                let period_Gain = current_Biomass - prev_Biomass; 
+                let period_FCR = (period_Gain > 0) ? (period_feed / period_Gain) : 0;
+                let period_FE = (period_FCR > 0) ? (1 / period_FCR) : 0;
+                let protein_intake = period_feed * (ProteinPct / 100);
+                let period_PER = (protein_intake > 0) ? (period_Gain / protein_intake) : 0;
+
+                let FI_kg_day = period_feed / d_val;
+                let avg_Biomass_period = (prev_Biomass + current_Biomass) / 2;
+                let FI_pct_bw = (avg_Biomass_period > 0) ? (FI_kg_day / avg_Biomass_period) * 100 : 0;
+
+                cum_Feed += period_feed; 
+
+                // พยากรณ์อาหารปลานิลแดง
+                let rec_feed_pct = (w_val < 20) ? 0.06 : (w_val < 50) ? 0.05 : (w_val < 100) ? 0.04 : (w_val < 250) ? 0.03 : (w_val < 500) ? 0.02 : 0.015;
+                let rec_feed_kg_day = current_Biomass * rec_feed_pct;
+
+                let default_fcr = (period_FCR > 0) ? period_FCR : 1.5; 
+                let expected_gain_total = (rec_feed_kg_day * d_val) / default_fcr;
+                let expected_next_biomass = current_Biomass + expected_gain_total;
+                let expected_next_weight = (N_i > 0) ? (expected_next_biomass * 1000) / N_i : 0;
+                
+                cum_Days += d_val;
+                final_Biomass = current_Biomass;
+                final_N = N_i;
+                final_W = w_val;
+                final_Surv = survival_rate;
+                if(period_FCR > 0) final_FCR = period_FCR; 
+
+                htmlResult += `
+                    <tr>
+                        <td class="bg-light fw-bold">ครั้งที่ ${index + 1}</td>
+                        <td>${d_val}</td>
+                        <td class="text-primary">${w_val.toFixed(1)}</td>
+                        <td class="text-primary fw-bold">${Wg.toFixed(1)}</td>
+                        <td>${ADG.toFixed(2)}</td>
+                        <td>${SGR.toFixed(2)}</td>
+                        <td class="text-secondary fw-bold">${cum_Feed.toFixed(2)}</td>
+                        <td class="text-primary fw-bold">${FI_kg_day.toFixed(2)}</td>
+                        <td class="text-primary fw-bold">${FI_pct_bw.toFixed(2)}</td>
+                        <td class="text-danger">${period_FCR.toFixed(2)}</td>
+                        <td>${period_FE.toFixed(2)}</td>
+                        <td>${period_PER.toFixed(2)}</td>
+                        <td>${survival_rate.toFixed(1)}</td>
+                        <td class="text-info fw-bold">${N_i.toLocaleString()}</td>
+                        <td class="text-success">${current_Biomass.toFixed(2)}</td>
+                        <td class="text-warning fw-bold" style="background:#fffde7;">${rec_feed_kg_day.toFixed(2)}</td>
+                        <td class="text-warning fw-bold" style="background:#fffde7;">${expected_next_weight.toFixed(1)}</td>
+                    </tr>
+                `;
+                prev_W = w_val; prev_Biomass = current_Biomass;
+            }
+        });
+
+        if (!hasData) { alert("กรุณากรอกข้อมูลอย่างน้อย 1 แถวให้ครบถ้วน"); return; }
+
+        let cum_Wg = final_W - W0;
+        let cum_ADG = cum_Wg / cum_Days;
+        let cum_SGR = ((Math.log(final_W) - Math.log(W0)) / cum_Days) * 100;
+        
+        let cum_Gain_total = final_Biomass - ((N0 * W0) / 1000);
+        let cum_FCR_total = (cum_Gain_total > 0) ? (cum_Feed / cum_Gain_total) : 0;
+        let cum_FE_total = (cum_FCR_total > 0) ? (1 / cum_FCR_total) : 0;
+        let cum_PER_total = (cum_Gain_total > 0) ? (cum_Gain_total / (cum_Feed * (ProteinPct / 100))) : 0;
+        
+        let total_cost = cum_Feed * feedPrice;
+        let cost_per_kg_yield = (cum_Gain_total > 0) ? (total_cost / cum_Gain_total) : 0;
+        let cost_per_fish = (final_N > 0) ? (total_cost / final_N) : 0;
+
+        let advBox = document.getElementById('adviceBox');
+        let avg_do = (count_do > 0) ? (sum_do / count_do) : null;
+        let avg_tan = (count_tan > 0) ? (sum_tan / count_tan) : null;
+        let avg_no2 = (count_no2 > 0) ? (sum_no2 / count_no2) : null;
+
+        let wq_warning = ""; let wq_advice = "";
+        let statusColor = "#155724"; let bgBoxColor = "#d4edda";
+        let statusTitle = "🟢 สถานะการเลี้ยง: ดีเยี่ยม (Excellent)";
+
+        let hasCriticalWQ = (activeCols['do'] && avg_do !== null && avg_do < 4.0) ||
+                            (activeCols['tan'] && avg_tan !== null && avg_tan > 1.0) ||
+                            (activeCols['no2'] && avg_no2 !== null && avg_no2 > 0.5);
+
+        let hasWarningWQ = (activeCols['do'] && avg_do !== null && avg_do < 5.0) ||
+                           (activeCols['tan'] && avg_tan !== null && avg_tan > 0.5);
+
+        if (hasCriticalWQ || cum_FCR_total > 2.0) {
+            statusColor = "#721c24"; bgBoxColor = "#f8d7da";
+            statusTitle = "🔴 สถานะการเลี้ยง: วิกฤต (Critical) - ปัจจัยลบส่งผลกระทบต่อต้นทุน";
+            wq_warning = `<ul style="margin-top:10px;">`;
+            if(activeCols['do'] && avg_do !== null && avg_do < 4.0) wq_warning += `<li><b>DO ต่ำเฉลี่ย (${avg_do.toFixed(1)} mg/L):</b> ทำให้ปลานิลแดงเครียด ส่งผลให้ FCR สูงและต้นทุนค่าอาหารเพิ่มขึ้น</li>`;
+            if(activeCols['tan'] && avg_tan !== null && avg_tan > 1.0) wq_warning += `<li><b>แอมโมเนียสูง (${avg_tan.toFixed(2)} mg/L):</b> ก่อให้เกิดความเป็นพิษ ยับยั้งการเจริญเติบโต</li>`;
+            if(activeCols['no2'] && avg_no2 !== null && avg_no2 > 0.5) wq_warning += `<li><b>ไนไตรท์สูง (${avg_no2.toFixed(2)} mg/L):</b> ปลาลำเลียงออกซิเจนได้ลดลง กระทบต่ออัตรารอดตาย</li>`;
+            if(cum_FCR_total > 2.0) wq_warning += `<li><b>FCR สะสมสูงเกินเกณฑ์ (${cum_FCR_total.toFixed(2)}):</b> อาหารสูญเปล่าจำนวนมาก ส่งผลให้เกิดน้ำเสียสะสม</li>`;
+            wq_warning += `</ul>`;
+            wq_advice = `<b>แนวทางแก้ไข:</b> ควรจัดการคุณภาพน้ำโดยด่วน! ลดปริมาณอาหารลงชั่วคราว และพิจารณาเสริมระบบเติมอากาศ (เช่น เทคโนโลยีไมโครนาโนบับเบิ้ล) เพื่อดันระดับ DO ครับ`;
+        } 
+        else if (hasWarningWQ || cum_FCR_total > 1.5) {
+            statusColor = "#856404"; bgBoxColor = "#fff3cd";
+            statusTitle = "🟡 สถานะการเลี้ยง: เฝ้าระวัง (Warning) - ความเสี่ยงด้านต้นทุนแฝง";
+            wq_advice = `<b>แนวทางเพิ่มประสิทธิภาพ:</b> ค่า FCR หรือคุณภาพน้ำเริ่มปริ่มเกณฑ์ ควรควบคุมการให้อาหารปลานิลแดงอิงตามตารางคำแนะนำอย่างรัดกุม <br><br><i>*ข้อเสนอแนะเชิงวิชาการ:*</i> ข้อมูลนี้สามารถนำไปวิเคราะห์ Data Science (Machine Learning) เพื่อสร้างโมเดลพยากรณ์ ADG ของฟาร์มได้ครับ`;
+        }
+        else {
+            let wqEvaluated = (activeCols['do'] || activeCols['tan'] || activeCols['no2']);
+            if (wqEvaluated) {
+                wq_advice = `<b>การวิเคราะห์:</b> คุณภาพน้ำอยู่ในเกณฑ์มาตรฐาน ส่งเสริมให้ค่า FE และ PER สูง ส่งผลให้ FCR ต่ำ ควบคุมต้นทุนได้อย่างยอดเยี่ยม แนะนำให้รักษาปริมาณการให้อาหารตามตารางต่อไปครับ`;
+            } else {
+                wq_advice = `<b>การวิเคราะห์:</b> ค่า FCR สะสมอยู่ในเกณฑ์ดีเยี่ยม แต่ยังขาดข้อมูลพารามิเตอร์คุณภาพน้ำหลัก (DO, TAN, Nitrite) หากสามารถตรวจวัดเพิ่มเติมได้ จะช่วยให้การควบคุมต้นทุนสมบูรณ์แบบยิ่งขึ้นครับ`;
+            }
+        }
+
+        if(customCols.length > 0) {
+            wq_advice += `<br><br><i class="text-primary" style="font-size: 0.95rem;">*หมายเหตุสำหรับงานวิจัย:* พารามิเตอร์เพิ่มเติมที่สร้างขึ้น จะถูกบันทึกไว้อย่างปลอดภัยในชุดข้อมูล (Dataset) เพื่อให้นักศึกษานำไปใช้รันโมเดลทางสถิติหรือ Machine Learning วิเคราะห์ความสัมพันธ์เชิงลึกต่อไปครับ</i>`;
+        }
+
+        advBox.style.backgroundColor = bgBoxColor;
+        advBox.style.borderLeft = `8px solid ${statusColor}`;
+        advBox.style.color = "#212121"; 
+        advBox.innerHTML = `<h5 style="color:${statusColor}; font-weight:900; margin-bottom:10px;">${statusTitle}</h5>
+                            ${wq_warning} ${wq_advice}`;
+
+        // อัปเดต UI
+        document.getElementById('resultTableBody').innerHTML = htmlResult;
+        
+        document.getElementById('sum_wg').innerText = cum_Wg.toFixed(1) + " g";
+        document.getElementById('sum_adg').innerText = cum_ADG.toFixed(2) + " g/d";
+        document.getElementById('sum_sgr').innerText = cum_SGR.toFixed(2) + " %/d";
+        document.getElementById('sum_yield').innerText = final_Biomass.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        document.getElementById('sum_fcr').innerText = cum_FCR_total.toFixed(2);
+        document.getElementById('sum_fe').innerText = cum_FE_total.toFixed(2);
+        document.getElementById('sum_per').innerText = cum_PER_total.toFixed(2);
+        document.getElementById('sum_feed').innerText = cum_Feed.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        document.getElementById('total_cost').innerText = total_cost.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('cost_per_kg').innerText = cost_per_kg_yield.toFixed(2) + " ฿";
+        document.getElementById('cost_per_fish').innerText = cost_per_fish.toFixed(2) + " ฿";
+
+        document.getElementById('sum_survival').innerText = final_Surv.toFixed(1);
+        document.getElementById('sum_alive').innerText = final_N.toLocaleString();
+
+        document.getElementById('resultSection').style.display = 'block';
+        window.scrollTo({ top: document.getElementById('resultSection').offsetTop - 20, behavior: 'smooth' });
+    }
+</script>
+</body>
+</html>
